@@ -52,22 +52,22 @@ const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] =
         .partition_owner           = BK_FLASH_EMBEDDED,
         .partition_description     = "Application",
         .partition_start_addr      = 0x11000,
-        .partition_length          = 0x121000,//1156KB
+        .partition_length          = 0x103C00,//1039KB
         .partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_OTA] = 
     {
         .partition_owner           = BK_FLASH_EMBEDDED,
         .partition_description     = "ota",
-        .partition_start_addr      = 0x12A000,
-        .partition_length          = 0xA6000, //664KB
+        .partition_start_addr      = 0x125000,
+        .partition_length          = 0xB0000, //720KB
         .partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_RF_FIRMWARE] =
     {
         .partition_owner           = BK_FLASH_EMBEDDED,
         .partition_description     = "RF Firmware",
-        .partition_start_addr      = 0x1D0000,// for rf related info
+        .partition_start_addr      = 0x1D9000,// for rf related info
         .partition_length          = 0x1000,
         .partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
@@ -75,7 +75,7 @@ const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] =
     {
         .partition_owner           = BK_FLASH_EMBEDDED,
         .partition_description     = "NET info",
-        .partition_start_addr      = 0x1D1000,// for net related info
+        .partition_start_addr      = 0x1D9000,// for net related info
         .partition_length          = 0x1000,
         .partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     }
