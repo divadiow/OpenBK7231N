@@ -5,7 +5,7 @@ TARGET_PLATFORM=$3
 USER_CMD=$4
 BUILD_MODE=$5
 
-# Normalize platform (uppercased)
+# Normalize platform name for guards
 PLAT_UPPER="$(echo "$TARGET_PLATFORM" | tr '[:lower:]' '[:upper:]')"
 
 echo APP_BIN_NAME=$APP_BIN_NAME
@@ -135,7 +135,7 @@ cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output
 # 	BK7231M steps (zero keys)
 # 
 if [ "$PLAT_UPPER" = "BK7231M" ] && [ "$BUILD_MODE" = "zerokeys" ]; then
-echo "BK7231M: extra zero-keys repack (guarded)"
+echo "Will do extra step - for zero keys/dogness"
 # Blank-start with zero keys bin
 # cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
@@ -145,7 +145,7 @@ echo "Will do zero keys encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
 echo "Will do zero mpytools.py to generate config.json"
 # python mpytools.py [BootloaderFile] [AppFile]
-python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 echo "Will do zero BEKEN_PACK"
 ./${BEKEN_PACK} config.json
 echo "Will do zero qio"
