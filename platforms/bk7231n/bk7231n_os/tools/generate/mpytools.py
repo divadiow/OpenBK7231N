@@ -6,7 +6,7 @@ import json
 out_json = {
     "magic": "RT-Thread",
     "version": "0.1",
-    "count": 2,
+    "count": 4,
     "section": [
         {
             "firmware": "bk7231n_bootloader_enc.bin",
