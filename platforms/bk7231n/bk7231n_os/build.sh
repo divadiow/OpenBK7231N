@@ -159,7 +159,7 @@ cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
 # Call encrypt like Divadiow did
 # ENCRYPT_NEW is cmake_encrypt_crc.exe
 # this shall generate bk7231n_bootloader_uascent_enc.bin for bk7231n_bootloader_uascent.bin
-./${ENCRYPT} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
+./${ENCRYPT} bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 10000
 # Copy blank-start App with zero keys bin
 # cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
