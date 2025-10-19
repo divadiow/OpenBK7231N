@@ -153,13 +153,13 @@ cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/
 # 
 # 	UASCENT steps (4862379A 8612784B 85C5E258 75754528)
 # 
-# Copy blank bootloader just to have it  with "uascent" in name
+# Copy blank bootloader just to have it with "uascent" in name
 # cp [sourceFile] [destinationFile]
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
 # Call encrypt like Divadiow did
 # ENCRYPT_NEW is cmake_encrypt_crc.exe
 # this shall generate bk7231n_bootloader_uascent_enc.bin for bk7231n_bootloader_uascent.bin
-./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
+./${ENCRYPT} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
 # Copy blank-start App with zero keys bin
 # cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
@@ -206,6 +206,4 @@ else
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_QIO_"$APP_VERSION.bin
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UA_"$APP_VERSION.bin
 fi
