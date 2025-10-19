@@ -73,7 +73,7 @@ if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
 	#python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
-	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+	python mpytools.py bk7231n_bootloader.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 else
 	echo "Using usual Tuya path"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 510fb093 a3cbeadc 5993a17e c7adeb03 10000
@@ -206,21 +206,4 @@ else
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map
-   # Extra copies for variant artifacts (only if they exist)
-[ -f ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin ] && \
-  cp ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin \
-     ${CI_PACKAGE_PATH}/$FW_NAME"_M_QIO_"$APP_VERSION.bin
-
-[ -f ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin ] && \
-  cp ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin \
-     ${CI_PACKAGE_PATH}/$FW_NAME"_M_UA_"$APP_VERSION.bin
-
-[ -f ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin ] && \
-  cp ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin \
-     ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_QIO_"$APP_VERSION.bin
-
-[ -f ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin ] && \
-  cp ././${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin \
-     ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UA_"$APP_VERSION.bin
-
 fi
