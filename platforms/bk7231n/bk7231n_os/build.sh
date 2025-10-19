@@ -157,7 +157,7 @@ cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/
 #    Copy base bootloader to a UASCENT-named file and encrypt it.
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
 # ENCRYPT is cmake_encrypt_crc (.exe on Windows)
-./${ENCRYPT} bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 10000
+./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
 
 # 2) Prepare app image with UASCENT keys
 #    Start from the zero-keys app, then encrypt -> *_enc.bin
