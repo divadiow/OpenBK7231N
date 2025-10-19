@@ -167,7 +167,7 @@ echo "Will do UASCENT encrypt"
 
 # 3) Generate pack config and pack bootloader+app
 echo "Will do UASCENT mpytools.py to generate config.json"
-python mpytools.py bk7231n_bootloader_uascent_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+python mpytools.py ./bk7231n_bootloader_uascent_enc.bin ./${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 
 echo "Will do UASCENT BEKEN_PACK"
 ./${BEKEN_PACK} config.json     # produces all_1.00.bin in the cwd
