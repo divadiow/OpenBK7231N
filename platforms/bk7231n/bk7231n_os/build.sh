@@ -181,6 +181,12 @@ cp all_1.00.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin \
    ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
 
+# (Optional guard) Verify first 64 KiB matches the UASCENT bootloader, not zero-keys
+dd if=../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin \
+    of=/tmp/_uascent_head.bin bs=1 count=65536 status=none
+ cmp -n 65536 /tmp/_uascent_head.bin bk7231n_bootloader_uascent_enc.bin || {
+   echo "ERROR: UASCENT bootloader mismatch in final QIO"; exit 1;
+ }
 
 echo "*************************************************************************"
 echo "*************************************************************************"
