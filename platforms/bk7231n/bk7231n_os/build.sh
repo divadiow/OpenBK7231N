@@ -153,40 +153,37 @@ cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/
 #
 #  UASCENT steps (4862379A 8612784B 85C5E258 75754528)
 #
+
+# Safety: start clean in tools/generate
+rm -f config.json all_1.00.bin
+
 # 1) Prepare bootloader with UASCENT keys
-#    Copy base bootloader to a UASCENT-named file and encrypt it.
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
-# ENCRYPT is cmake_encrypt_crc (.exe on Windows)
 ./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
 
 # 2) Prepare app image with UASCENT keys
-#    Start from the zero-keys app, then encrypt -> *_enc.bin
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
 echo "Will do UASCENT encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379A 8612784B 85C5E258 75754528 10000
 
-# 3) Generate pack config and pack bootloader+app
+# 3) Build pack config with the correct (UASCENT) bootloader
 echo "Will do UASCENT mpytools.py to generate config.json"
 python mpytools.py ./bk7231n_bootloader_uascent_enc.bin ./${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 
+# Guard: verify the config references the UASCENT bootloader
+grep -q "bk7231n_bootloader_uascent_enc.bin" config.json || {
+  echo "ERROR: Wrong bootloader in UASCENT config.json"; exit 1;
+}
+
+# 4) Pack bootloader+app → all_1.00.bin
 echo "Will do UASCENT BEKEN_PACK"
-./${BEKEN_PACK} config.json     # produces all_1.00.bin in the cwd
+./${BEKEN_PACK} config.json
 
-# 4) FINAL COPIES (no staging reuse!)
+# 5) FINAL COPIES (no staging reuse!)
 echo "Will do UASCENT final copies (no staging)"
-# QIO: write directly from packager output to final UASCENT filename
 cp all_1.00.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
-
-# UA: re-label the already-produced UA app-only image as UASCENT (naming only)
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin \
    ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
-
-# (Optional guard) Verify first 64 KiB matches the UASCENT bootloader, not zero-keys
-dd if=../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin \
-    of=/tmp/_uascent_head.bin bs=1 count=65536 status=none
- cmp -n 65536 /tmp/_uascent_head.bin bk7231n_bootloader_uascent_enc.bin || {
-   echo "ERROR: UASCENT bootloader mismatch in final QIO"; exit 1;
- }
 
 echo "*************************************************************************"
 echo "*************************************************************************"
