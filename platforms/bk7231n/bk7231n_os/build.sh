@@ -165,9 +165,16 @@ cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bi
 echo "Will do UASCENT encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379A 8612784B 85C5E258 75754528 10000
 
+echo "----- BEGIN mpytools.py -----"
+cat mpytools.py
+
 # 3) Generate pack config and pack bootloader+app
 echo "Will do UASCENT mpytools.py to generate config.json"
 python mpytools.py bk7231n_bootloader_uascent_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+
+# === sanity dump of config.json and inputs ===
+echo "---- UASCENT config.json (pre-pack) ----"
+cat config.json
 
 echo "Will do UASCENT BEKEN_PACK"
 ./${BEKEN_PACK} config.json     # produces all_1.00.bin in the cwd
