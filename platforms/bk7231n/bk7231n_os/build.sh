@@ -80,7 +80,6 @@ else
 	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 fi
 
-
 ./${BEKEN_PACK} config.json
 
 echo "End Combined"
@@ -90,7 +89,7 @@ rm all_1.00.bin
 cp ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin ${APP_BIN_NAME}_UA_${APP_VERSION}.bin
 rm ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin
 
-#generate ota file
+#generate ota file (BASE path: partition = app)
 echo "generate ota file"
 ./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k 0123456789ABCDEF0123456789ABCDEF -i 0123456789ABCDEF
 ./${TY_PACKAGE} ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${APP_VERSION:0:31} 
@@ -157,7 +156,7 @@ cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/
 #    Copy base bootloader to a UASCENT-named file and encrypt it.
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
 # ENCRYPT is cmake_encrypt_crc (.exe on Windows)
-./${ENCRYPT} bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 0
+./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
 
 # 2) Prepare app image with UASCENT keys
 #    Start from the zero-keys app, then encrypt -> *_enc.bin
@@ -179,8 +178,32 @@ cp all_1.00.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_
 
 # UA: re-label the already-produced UA app-only image as UASCENT (naming only)
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin \
-   ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin	
-	
+   ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
+
+# 5) UASCENT OTA packaging (RBL/UG) — target the download slot by name
+echo "generate UASCENT ota file (partition=download)"
+./${RT_OTA_PACK_TOOL} \
+  -f ${APP_BIN_NAME}_${APP_VERSION}.bin \
+  -v $CURRENT_TIME \
+  -o OpenBK7231N_UASCENT_${APP_VERSION}.rbl \
+  -p app \
+  -c gzip -s aes \
+  -k 0123456789ABCDEF0123456789ABCDEF \
+  -i 0123456789ABCDEF
+
+./${TY_PACKAGE} \
+  OpenBK7231N_UASCENT_${APP_VERSION}.rbl \
+  OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin \
+  ${APP_VERSION:0:31}
+
+# Copy UASCENT RBL + UG into app output
+cp OpenBK7231N_UASCENT_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl
+cp OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
+
+# (optional) keep the RBL; comment these two lines if you prefer to retain intermediates here
+# rm OpenBK7231N_UASCENT_${APP_VERSION}.rbl
+# rm OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
+
 
 echo "*************************************************************************"
 echo "*************************************************************************"
@@ -207,4 +230,8 @@ else
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf
    cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map
+
+   # Include UASCENT OTA artifacts in CI bundle too
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UG_"$APP_VERSION.bin || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl       ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_"$APP_VERSION.rbl       || true
 fi
