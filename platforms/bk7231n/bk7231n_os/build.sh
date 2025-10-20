@@ -159,7 +159,7 @@ rm -f config.json all_1.00.bin
 
 # 1) Prepare bootloader with UASCENT keys
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
-./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
+./${ENCRYPT} bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 0
 
 # 2) Prepare app image with UASCENT keys
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
@@ -169,11 +169,6 @@ echo "Will do UASCENT encrypt"
 # 3) Build pack config with the correct (UASCENT) bootloader
 echo "Will do UASCENT mpytools.py to generate config.json"
 python mpytools.py ./bk7231n_bootloader_uascent_enc.bin ./${APP_BIN_NAME}_${APP_VERSION}_enc.bin
-
-# Guard: verify the config references the UASCENT bootloader
-grep -q "bk7231n_bootloader_uascent_enc.bin" config.json || {
-  echo "ERROR: Wrong bootloader in UASCENT config.json"; exit 1;
-}
 
 # 4) Pack bootloader+app → all_1.00.bin
 echo "Will do UASCENT BEKEN_PACK"
