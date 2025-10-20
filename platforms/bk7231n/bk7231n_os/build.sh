@@ -126,6 +126,30 @@ cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
 
+
+
+# 
+# 	BK7231M steps (zero keys)
+# 
+echo "Will do extra step - for zero keys/dogness"
+# Blank-start with zero keys bin
+# cp [sourceFile] [destinationFile]
+cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
+# Apply keys
+echo "Will do zero keys encrypt"
+# This will generate ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
+echo "Will do zero mpytools.py to generate config.json"
+# python mpytools.py [BootloaderFile] [AppFile]
+python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+echo "Will do zero BEKEN_PACK"
+./${BEKEN_PACK} config.json
+echo "Will do zero qio"
+cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
+
+
 #
 #  UASCENT steps (4862379A 8612784B 85C5E258 75754528)
 #
@@ -133,7 +157,7 @@ cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output
 #    Copy base bootloader to a UASCENT-named file and encrypt it.
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
 # ENCRYPT is cmake_encrypt_crc (.exe on Windows)
-./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
+./${ENCRYPT} bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 0
 
 # 2) Prepare app image with UASCENT keys
 #    Start from the zero-keys app, then encrypt -> *_enc.bin
@@ -144,7 +168,6 @@ echo "Will do UASCENT encrypt"
 # 3) Generate pack config and pack bootloader+app
 echo "Will do UASCENT mpytools.py to generate config.json"
 python mpytools.py bk7231n_bootloader_uascent_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
-
 
 echo "Will do UASCENT BEKEN_PACK"
 ./${BEKEN_PACK} config.json     # produces all_1.00.bin in the cwd
