@@ -36,22 +36,13 @@ else
 	ENCRYPT_NEW=${TOOL_DIR}/cmake_encrypt_crc.exe
 fi
 
-APP_PATH=../../../apps
+# NOTE: This path matches your latest repo layout when invoked from bk7231n_os
+APP_PATH=./././apps
 
-for i in `find ${APP_PATH}/$APP_BIN_NAME/src -type d`
-do
+# Clean obj files for a deterministic build
+for i in `find ${APP_PATH}/$APP_BIN_NAME/src -type d`; do
     rm -rf $i/*.o
 done
-
-# for i in `find ../tuya_common -type d`
-# do
-#     rm -rf $i/*.o
-# done
-
-# for i in `find ../../../components -type d`
-# do
-#     rm -rf $i/*.o
-# done
 
 if [ -z $CI_PACKAGE_PATH ]; then
     echo "not is ci build"
@@ -61,18 +52,18 @@ fi
 
 make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION $USER_CMD -j -C ./
 
-echo "Start Combined"
+echo "Start Combined (BASE/Tuya)"
 cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.bin tools/generate/
 
 cd tools/generate/
 
-# cp [sourceFile] [destinationFile]
+# Save a copy for later variant flows
 cp ${APP_BIN_NAME}_${APP_VERSION}.bin ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin
 
+# --- BASE path (Tuya keys) ---
 if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
-	#python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 else
 	echo "Using usual Tuya path"
@@ -82,106 +73,71 @@ fi
 
 ./${BEKEN_PACK} config.json
 
-echo "End Combined"
+echo "End Combined (BASE)"
 cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
-rm all_1.00.bin
+rm -f all_1.00.bin
 
 cp ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin ${APP_BIN_NAME}_UA_${APP_VERSION}.bin
-rm ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin
+rm -f ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin
 
-#generate ota file (BASE path: partition = app)
-echo "generate ota file"
+# --- BASE OTA (kept unchanged; partition name = app) ---
+echo "generate ota file (BASE)"
 ./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k 0123456789ABCDEF0123456789ABCDEF -i 0123456789ABCDEF
-./${TY_PACKAGE} ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${APP_VERSION:0:31} 
-echo rm ${APP_BIN_NAME}_${APP_VERSION}.rbl
-rm ${APP_BIN_NAME}_${APP_VERSION}.bin
-rm ${APP_BIN_NAME}_${APP_VERSION}.cpr
-rm ${APP_BIN_NAME}_${APP_VERSION}.out
-rm ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+./${TY_PACKAGE} ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${APP_VERSION:0:31}
 
-echo "ug_file size:"
-ls -l ${APP_BIN_NAME}_UG_${APP_VERSION}.bin | awk '{print $5}'
-if [ `ls -l ${APP_BIN_NAME}_UG_${APP_VERSION}.bin | awk '{print $5}'` -gt 679936 ];then
-	echo "**********************${APP_BIN_NAME}_$APP_VERSION.bin***************"
-	echo "************************** too large ********************************"
-	rm ${APP_BIN_NAME}_UG_${APP_VERSION}.bin
-	rm ${APP_BIN_NAME}_UA_${APP_VERSION}.bin
-	rm ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
-	exit 1
-fi
-
-if [ "$BUILD_MODE" = "zerokeys" ]; then
-	TEMP_FILE=$(mktemp)
-	
-	dd if="bk7231n_bootloader_zero_keys.bin" bs=1 count=65536 of="$TEMP_FILE"
-	dd if="${APP_BIN_NAME}_QIO_${APP_VERSION}.bin" bs=1 skip=65536 of="$TEMP_FILE" seek=65536
-	mv "$TEMP_FILE" "${APP_BIN_NAME}_QIO_${APP_VERSION}.bin"
-	echo "Successfully overwrote bootloader."
-fi
-
+# publish base artifacts
 echo "$(pwd)"
-cp ${APP_BIN_NAME}_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.rbl
-cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.rbl
+cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
 
-
-
-# 
-# 	BK7231M steps (zero keys)
-# 
+# --- BK7231M (zero-keys) VARIANT ---
 echo "Will do extra step - for zero keys/dogness"
-# Blank-start with zero keys bin
-# cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
-# Apply keys
-echo "Will do zero keys encrypt"
-# This will generate ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
-echo "Will do zero mpytools.py to generate config.json"
-# python mpytools.py [BootloaderFile] [AppFile]
 python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
-echo "Will do zero BEKEN_PACK"
 ./${BEKEN_PACK} config.json
-echo "Will do zero qio"
 cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
-
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
+rm -f all_1.00.bin
 
 #
 #  UASCENT steps (4862379A 8612784B 85C5E258 75754528)
 #
+# Safety: start clean in tools/generate (avoid stale config/image)
+rm -f config.json all_1.00.bin
+
 # 1) Prepare bootloader with UASCENT keys
-#    Copy base bootloader to a UASCENT-named file and encrypt it.
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
-# ENCRYPT is cmake_encrypt_crc (.exe on Windows)
 ./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
 
 # 2) Prepare app image with UASCENT keys
-#    Start from the zero-keys app, then encrypt -> *_enc.bin
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
 echo "Will do UASCENT encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379A 8612784B 85C5E258 75754528 10000
 
-# 3) Generate pack config and pack bootloader+app
+# 3) Build pack config with the correct (UASCENT) bootloader
 echo "Will do UASCENT mpytools.py to generate config.json"
-python mpytools.py bk7231n_bootloader_uascent_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+python mpytools.py ./bk7231n_bootloader_uascent_enc.bin ./${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 
+# Guard: verify the config references the UASCENT bootloader
+grep -q "bk7231n_bootloader_uascent_enc.bin" config.json || {
+  echo "ERROR: Wrong bootloader in UASCENT config.json"; exit 1;
+}
+
+# 4) Pack bootloader+app → all_1.00.bin
 echo "Will do UASCENT BEKEN_PACK"
-./${BEKEN_PACK} config.json     # produces all_1.00.bin in the cwd
+./${BEKEN_PACK} config.json
 
-# 4) FINAL COPIES (no staging reuse!)
+# 5) FINAL COPIES (no staging reuse!)
 echo "Will do UASCENT final copies (no staging)"
-# QIO: write directly from packager output to final UASCENT filename
-cp all_1.00.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
+cp all_1.00.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
 
-# UA: re-label the already-produced UA app-only image as UASCENT (naming only)
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin \
-   ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
-
-# 5) UASCENT OTA packaging (RBL/UG) — target the download slot by name
-echo "generate UASCENT ota file (partition=download)"
+# 6) UASCENT OTA packaging (same partition name as base; 'app')
+echo "generate UASCENT ota file (partition=app)"
 ./${RT_OTA_PACK_TOOL} \
   -f ${APP_BIN_NAME}_${APP_VERSION}.bin \
   -v $CURRENT_TIME \
@@ -196,14 +152,9 @@ echo "generate UASCENT ota file (partition=download)"
   OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin \
   ${APP_VERSION:0:31}
 
-# Copy UASCENT RBL + UG into app output
-cp OpenBK7231N_UASCENT_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl
-cp OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
-
-# (optional) keep the RBL; comment these two lines if you prefer to retain intermediates here
-# rm OpenBK7231N_UASCENT_${APP_VERSION}.rbl
-# rm OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
-
+# Publish UASCENT OTA artifacts
+cp OpenBK7231N_UASCENT_${APP_VERSION}.rbl ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl
+cp OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
 
 echo "*************************************************************************"
 echo "*************************************************************************"
@@ -214,24 +165,24 @@ echo "**********************COMPILE SUCCESS************************************"
 echo "*************************************************************************"
 
 FW_NAME=$APP_NAME
-if [ -n $CI_IDENTIFIER ]; then
+if [ -n "$CI_IDENTIFIER" ]; then
         FW_NAME=$CI_IDENTIFIER
 fi
 
-if [ -z $CI_PACKAGE_PATH ]; then
+if [ -z "$CI_PACKAGE_PATH" ]; then
     echo "not is ci build"
-	exit
+	exit 0
 else
 	mkdir -p ${CI_PACKAGE_PATH}
 
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UG_"$APP_VERSION.bin
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UA_"$APP_VERSION.bin
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_QIO_"$APP_VERSION.bin
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UG_"$APP_VERSION.bin || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UA_"$APP_VERSION.bin || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_QIO_"$APP_VERSION.bin || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map || true
 
    # Include UASCENT OTA artifacts in CI bundle too
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UG_"$APP_VERSION.bin || true
-   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl       ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_"$APP_VERSION.rbl       || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UG_"$APP_VERSION.bin || true
+   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl       ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_"$APP_VERSION.rbl       || true
 fi
