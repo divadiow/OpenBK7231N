@@ -152,7 +152,7 @@ echo "generate UASCENT ota file (partition=app)"
   -f ${APP_BIN_NAME}_${APP_VERSION}.bin \
   -v $CURRENT_TIME \
   -o OpenBK7231N_UASCENT_${APP_VERSION}.rbl \
-  -p app \
+  -p download \
   -c gzip -s aes \
   -k 0123456789ABCDEF0123456789ABCDEF \
   -i 0123456789ABCDEF
