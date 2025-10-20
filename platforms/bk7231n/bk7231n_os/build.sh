@@ -13,6 +13,15 @@ echo BUILD_MODE=$BUILD_MODE
 
 USER_SW_VER=`echo $APP_VERSION | cut -d'-' -f1`
 
+# Ensure CURRENT_TIME is populated for OTA versioning
+if [ -z "$CURRENT_TIME" ]; then
+  if date +%Y%m%d%H%M%S >/dev/null 2>&1; then
+    CURRENT_TIME=$(date +%Y%m%d%H%M%S)
+  else
+    CURRENT_TIME="$APP_VERSION"
+  fi
+fi
+
 echo "Start Compile"
 set -e
 
@@ -36,15 +45,15 @@ else
 	ENCRYPT_NEW=${TOOL_DIR}/cmake_encrypt_crc.exe
 fi
 
-# NOTE: This path matches your latest repo layout when invoked from bk7231n_os
-APP_PATH=./././apps
+# Match your original layout: this script starts in .../bk7231n_os
+APP_PATH=../../../apps
 
 # Clean obj files for a deterministic build
 for i in `find ${APP_PATH}/$APP_BIN_NAME/src -type d`; do
     rm -rf $i/*.o
 done
 
-if [ -z $CI_PACKAGE_PATH ]; then
+if [ -z "$CI_PACKAGE_PATH" ]; then
     echo "not is ci build"
 else
 	make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION clean -C ./
@@ -80,17 +89,17 @@ rm -f all_1.00.bin
 cp ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin ${APP_BIN_NAME}_UA_${APP_VERSION}.bin
 rm -f ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin
 
-# --- BASE OTA (kept unchanged; partition name = app) ---
+# --- BASE OTA (partition name = app, same as Tuya) ---
 echo "generate ota file (BASE)"
 ./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k 0123456789ABCDEF0123456789ABCDEF -i 0123456789ABCDEF
 ./${TY_PACKAGE} ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${APP_VERSION:0:31}
 
-# publish base artifacts
+# publish base artifacts (go back to repo's apps/ via ../../)
 echo "$(pwd)"
-cp ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.rbl
-cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.rbl
+cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
 
 # --- BK7231M (zero-keys) VARIANT ---
 echo "Will do extra step - for zero keys/dogness"
@@ -99,8 +108,8 @@ cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bi
 python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 ./${BEKEN_PACK} config.json
 cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
 rm -f all_1.00.bin
 
 #
@@ -133,8 +142,9 @@ echo "Will do UASCENT BEKEN_PACK"
 
 # 5) FINAL COPIES (no staging reuse!)
 echo "Will do UASCENT final copies (no staging)"
-cp all_1.00.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
+cp all_1.00.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
+rm -f all_1.00.bin
 
 # 6) UASCENT OTA packaging (same partition name as base; 'app')
 echo "generate UASCENT ota file (partition=app)"
@@ -153,8 +163,8 @@ echo "generate UASCENT ota file (partition=app)"
   ${APP_VERSION:0:31}
 
 # Publish UASCENT OTA artifacts
-cp OpenBK7231N_UASCENT_${APP_VERSION}.rbl ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl
-cp OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
+cp OpenBK7231N_UASCENT_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl
+cp OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin
 
 echo "*************************************************************************"
 echo "*************************************************************************"
@@ -164,7 +174,8 @@ echo "*************************************************************************"
 echo "**********************COMPILE SUCCESS************************************"
 echo "*************************************************************************"
 
-FW_NAME=$APP_NAME
+# Default FW_NAME to APP_BIN_NAME, fall back to CI_IDENTIFIER if set
+FW_NAME=$APP_BIN_NAME
 if [ -n "$CI_IDENTIFIER" ]; then
         FW_NAME=$CI_IDENTIFIER
 fi
@@ -175,14 +186,14 @@ if [ -z "$CI_PACKAGE_PATH" ]; then
 else
 	mkdir -p ${CI_PACKAGE_PATH}
 
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UG_"$APP_VERSION.bin || true
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UA_"$APP_VERSION.bin || true
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_QIO_"$APP_VERSION.bin || true
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm || true
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf || true
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UG_"$APP_VERSION.bin || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UA_"$APP_VERSION.bin || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_QIO_"$APP_VERSION.bin || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.asm ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.asm || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.axf ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.axf || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.map ${CI_PACKAGE_PATH}/$FW_NAME"_"$APP_VERSION.map || true
 
    # Include UASCENT OTA artifacts in CI bundle too
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UG_"$APP_VERSION.bin || true
-   cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl       ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_"$APP_VERSION.rbl       || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UG_${APP_VERSION}.bin ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_UG_"$APP_VERSION.bin || true
+   cp ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_${APP_VERSION}.rbl       ${CI_PACKAGE_PATH}/$FW_NAME"_UASCENT_"$APP_VERSION.rbl       || true
 fi
