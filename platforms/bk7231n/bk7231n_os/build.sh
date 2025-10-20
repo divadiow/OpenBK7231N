@@ -150,35 +150,36 @@ cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
 
 
-# 
-# 	UASCENT steps (4862379A 8612784B 85C5E258 75754528)
-# 
-# Copy blank bootloader just to have it  with "uascent" in name
-# cp [sourceFile] [destinationFile]
+#
+#  UASCENT steps (4862379A 8612784B 85C5E258 75754528)
+#
+# 1) Prepare bootloader with UASCENT keys
+#    Copy base bootloader to a UASCENT-named file and encrypt it.
 cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
-# Call encrypt like Divadiow did
-# ENCRYPT_NEW is cmake_encrypt_crc.exe
-# this shall generate bk7231n_bootloader_uascent_enc.bin for bk7231n_bootloader_uascent.bin
+# ENCRYPT is cmake_encrypt_crc (.exe on Windows)
 ./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
-# Copy blank-start App with zero keys bin
-# cp [sourceFile] [destinationFile]
+
+# 2) Prepare app image with UASCENT keys
+#    Start from the zero-keys app, then encrypt -> *_enc.bin
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
-# Apply keys to the App
 echo "Will do UASCENT encrypt"
-# This will generate ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379A 8612784B 85C5E258 75754528 10000
-# Use mpytools.py to generate config.json for encrypted bootloader and encrypted app	
+
+# 3) Generate pack config and pack bootloader+app
 echo "Will do UASCENT mpytools.py to generate config.json"
-# python mpytools.py [BootloaderFile] [AppFile]
 python mpytools.py bk7231n_bootloader_uascent_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
-# Use Beken Pack on created config.json to combine bootloader and app together into all_1.00.bin
+
 echo "Will do UASCENT BEKEN_PACK"
-./${BEKEN_PACK} config.json
-echo "Will do UASCENT qio"
-cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
-cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
-	
+./${BEKEN_PACK} config.json     # produces all_1.00.bin in the cwd
+
+# 4) FINAL COPIES (no staging reuse!)
+echo "Will do UASCENT final copies (no staging)"
+# QIO: write directly from packager output to final UASCENT filename
+cp all_1.00.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
+
+# UA: re-label the already-produced UA app-only image as UASCENT (naming only)
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin \
+   ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin	
 	
 
 echo "*************************************************************************"
