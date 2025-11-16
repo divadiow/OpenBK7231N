@@ -176,6 +176,13 @@ echo "Will do UASCENT BEKEN_PACK"
 ./${BEKEN_PACK} config.json
 echo "Will do UASCENT qio"
 cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+
+# Patch QIO image with UASCENT bootloader
+BOOTLOADER_BIN="bootloader_1.0.13_4862379A_8612784B_85C5E258_75754528.bin"
+QIO_BIN="${APP_BIN_NAME}_QIO_${APP_VERSION}.bin"
+
+# Overwrite from offset 0 with the contents of the bootloader file
+dd if="$BOOTLOADER_BIN" of="$QIO_BIN" bs=1 conv=notrunc
 cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
 # cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
 	
